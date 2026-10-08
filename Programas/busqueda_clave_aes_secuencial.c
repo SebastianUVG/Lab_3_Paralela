@@ -115,6 +115,7 @@ static double get_time(void)
 
 int main(void)
 {
+    double program_start = get_time();
     EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
 
     if (ctx == NULL) {
@@ -163,9 +164,12 @@ int main(void)
     }
 
     printf("Ejecucion: secuencial\n");
-    printf("Tiempo: %.6f segundos\n", elapsed);
+    printf("Tiempo de busqueda: %.6f segundos\n", elapsed);
 
     EVP_CIPHER_CTX_free(ctx);
+
+    printf("Tiempo total del programa: %.6f segundos\n",
+           get_time() - program_start);
 
     return EXIT_SUCCESS;
 }

@@ -113,6 +113,55 @@ flowchart TB
 
 El diagrama muestra que ambos procesos parten de la **misma clave secreta**. La expansión produce las mismas once claves de ronda; el cifrado las consume en orden ascendente (`K0` a `K10`) y el descifrado en orden descendente (`K10` a `K0`).
 
+## Análisis del programa secuencial
+
+Al revisar el programa `busqueda_clave_aes_secuencial.c`, vimos que sí utiliza correctamente AES-128 para este ejercicio. Según lo investigado en el [documento del NIST](https://csrc.nist.gov/pubs/fips/197/final), AES-128 usa una clave de 128 bits, que equivale a 16 bytes, y trabaja con bloques de 16 bytes.
+
+En el programa, la clave tiene los 16 bytes necesarios. Sin embargo, para que la búsqueda se pueda realizar en poco tiempo, solo se prueban hasta 1,048,576 claves posibles. Esto hace que el ejercicio sea más sencillo, ya que probar todas las claves de AES-128 tomaría muchísimo más tiempo.
+
+El mensaje que se cifra es “Puedes lograrlo!”, que ocupa exactamente 16 bytes. Por eso cabe en un solo bloque y no necesita agregar relleno para completar su tamaño. El programa usa el modo ECB, que cifra cada bloque por separado. En este caso se trabaja con un solo bloque, pero con mensajes más largos este modo puede mostrar patrones si hay bloques repetidos.
+
+Primero, el programa cifra el mensaje usando la clave que corresponde al número 12345. Después, prueba claves una por una, empezando desde cero. Con cada clave intenta descifrar el mensaje y compara el resultado con el texto original. Cuando los dos mensajes coinciden, muestra la clave encontrada y termina la búsqueda.
+
+Esto coincide con lo investigado sobre el cifrado simétrico, porque se necesita la misma clave para cifrar y recuperar el mensaje. Las operaciones de AES las realiza la biblioteca [OpenSSL](https://docs.openssl.org/3.0/man3/EVP_EncryptInit/), por lo que no aparecen escritas paso a paso en el programa.
+
+Consideramos que el programa cumple con el objetivo del laboratorio: mostrar una búsqueda secuencial usando AES-128. Las claves fáciles de probar se usan para el ejercicio y no serían adecuadas para proteger información real.
+
+## Compilación y ejecución
+
+En Ubuntu o Debian, primero se actualiza la lista de paquetes y se instala lo necesario para usar OpenSSL desde C:
+
+```bash
+sudo apt update
+sudo apt install libssl-dev
+```
+
+Después, desde la carpeta del proyecto, se entra a `Programas`, se compila y se ejecuta:
+
+```bash
+cd Programas
+gcc -std=c11 -O2 -Wall -Wextra busqueda_clave_aes_secuencial.c -o busqueda_clave_aes_secuencial -lcrypto
+./busqueda_clave_aes_secuencial
+```
+
+La prueba se realizó en Fedora, donde no está disponible el comando `apt`. Como OpenSSL ya estaba instalado con los archivos necesarios, se pudo compilar directamente sin errores ni advertencias.
+
+## Tiempo de ejecución
+
+El programa ya medía cuánto tardaba en buscar la clave. También se agregó una medición del tiempo total, que incluye preparar el mensaje cifrado, buscar la clave y mostrar los resultados.
+
+Al ejecutar el programa obtuvimos lo siguiente:
+
+```text
+Clave encontrada: 12345
+Mensaje: Puedes lograrlo!
+Ejecucion: secuencial
+Tiempo de busqueda: 0.004920 segundos
+Tiempo total del programa: 0.006344 segundos
+```
+
+La búsqueda tardó aproximadamente 0.0049 segundos y el programa completo tardó aproximadamente 0.0063 segundos. Se probaron 12,346 claves, contando desde cero hasta llegar a 12345. No fue necesario probar todas las claves del ejercicio porque el programa se detuvo al encontrar la correcta. Los tiempos pueden cambiar dependiendo de la computadora y de los otros programas que estén ejecutándose.
+
 ## Referencias
 
 Dworkin, M. (2010). *Recommendation for block cipher modes of operation: The XTS-AES mode for confidentiality on storage devices* (NIST Special Publication 800-38E). National Institute of Standards and Technology. https://doi.org/10.6028/NIST.SP.800-38E
