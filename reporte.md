@@ -4,7 +4,7 @@
 
 - Sebastian Garcia — 22291
 - Ana Laura Tschen — 221645
-- Juan Francisco — 23617
+- Juan Francisco Martínez — 23617
 
 ## ¿Qué es AES?
 
