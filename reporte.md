@@ -1,5 +1,11 @@
 # AES (Advanced Encryption Standard)
 
+## Integrantes
+
+- Sebastian Garcia — 22291
+- Ana Laura Tschen — 221645
+- Juan Francisco — 23617
+
 ## ¿Qué es AES?
 
 El **Estándar de Cifrado Avanzado** (*Advanced Encryption Standard*, AES) es un algoritmo criptográfico simétrico de bloques. Se denomina simétrico porque utiliza la misma clave secreta para cifrar y descifrar la información. El cifrado transforma el texto plano en texto cifrado, aparentemente ininteligible; el descifrado aplica las transformaciones inversas con la clave correcta para recuperar el texto original.
@@ -86,22 +92,27 @@ Sin la clave correcta no se generan las mismas claves de ronda y, por tanto, no 
 
 ```mermaid
 flowchart TB
-    K[Clave secreta de 128 bits] --> E[Expansión de clave]
+    I([Inicio]) --> EN[Ingresar texto plano y clave secreta]
+    EN --> P[Texto plano: bloque de 128 bits]
+    EN --> K[Clave secreta de 128 bits]
+    K --> E[Expansión de clave]
     E --> RK[Claves de ronda K0, K1, ..., K10]
 
     subgraph C[Cifrado]
-        P[Texto plano: bloque de 128 bits] --> C0[AddRoundKey con K0]
+        P --> C0[AddRoundKey con K0]
         C0 --> C19["Rondas 1 a 9:<br/>SubBytes → ShiftRows → MixColumns → AddRoundKey con Ki"]
         C19 --> C10["Ronda 10:<br/>SubBytes → ShiftRows → AddRoundKey con K10"]
         C10 --> CT[Texto cifrado: bloque de 128 bits]
     end
 
     subgraph D[Descifrado]
-        DI[Texto cifrado: bloque de 128 bits] --> D0[AddRoundKey con K10]
+        CT --> D0[AddRoundKey con K10]
         D0 --> D91["Rondas inversas 9 a 1:<br/>InvShiftRows → InvSubBytes → AddRoundKey con Ki → InvMixColumns"]
         D91 --> D10["Ronda inversa final:<br/>InvShiftRows → InvSubBytes → AddRoundKey con K0"]
         D10 --> DP[Texto plano recuperado: bloque de 128 bits]
     end
+
+    DP --> F([Fin])
 
     RK -. K0 .-> C0
     RK -. K1 a K9 .-> C19
