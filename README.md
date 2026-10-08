@@ -90,13 +90,13 @@ Sin la clave correcta no se generan las mismas claves de ronda y, por tanto, no 
 
 ## c) Diagrama de flujo de AES-128
 
-![Diagrama](/Capturas/diagrama.png)
+![Diagrama](./Capturas/diagrama.png)
 
 El diagrama muestra que ambos procesos parten de la **misma clave secreta**. La expansión produce las mismas once claves de ronda; el cifrado las consume en orden ascendente (`K0` a `K10`) y el descifrado en orden descendente (`K10` a `K0`).
 
 ## Ejercicio 2 - Análisis del programa secuencial
 
-![Ejercicio 2](/Capturas/ej2.png)
+![Ejercicio 2](./Capturas/ej2.png)
 
 Al revisar el programa `busqueda_clave_aes_secuencial.c`, vimos que sí utiliza correctamente AES-128 para este ejercicio. Según lo investigado en el [documento del NIST](https://csrc.nist.gov/pubs/fips/197/final), AES-128 usa una clave de 128 bits, que equivale a 16 bytes, y trabaja con bloques de 16 bytes.
 
@@ -147,7 +147,7 @@ La búsqueda tardó aproximadamente 0.0049 segundos y el programa completo tard�
 
 ## 3. Problemas del programa secuencial
 
-![Ejercicio 3](/Capturas/ej3.png)
+![Ejercicio 3](./Capturas/ej3.png)
 
 
 ### a) Qué encontramos
@@ -179,7 +179,7 @@ Conservamos los nombres que ya estaban indicados para las mejoras anteriores y a
 
 ## 4. Versión paralela con Open MPI
 
-![Ejercicio 4](/Capturas/ej4.png)
+![Ejercicio 4](./Capturas/ej4.png)
 
 
 ### a) Cómo repartimos el trabajo
