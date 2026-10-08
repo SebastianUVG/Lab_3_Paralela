@@ -96,6 +96,8 @@ El diagrama muestra que ambos procesos parten de la **misma clave secreta**. La 
 
 ## Ejercicio 2 - Análisis del programa secuencial
 
+![Ejercicio 2](/Capturas/ej2.png)
+
 Al revisar el programa `busqueda_clave_aes_secuencial.c`, vimos que sí utiliza correctamente AES-128 para este ejercicio. Según lo investigado en el [documento del NIST](https://csrc.nist.gov/pubs/fips/197/final), AES-128 usa una clave de 128 bits, que equivale a 16 bytes, y trabaja con bloques de 16 bytes.
 
 En el programa, la clave tiene los 16 bytes necesarios. Sin embargo, para que la búsqueda se pueda realizar en poco tiempo, solo se prueban hasta 1,048,576 claves posibles. Esto hace que el ejercicio sea más sencillo, ya que probar todas las claves de AES-128 tomaría muchísimo más tiempo.
@@ -137,13 +139,16 @@ Al ejecutar el programa obtuvimos lo siguiente:
 Clave encontrada: 12345
 Mensaje: Puedes lograrlo!
 Ejecucion: secuencial
-Tiempo de busqueda: 0.004920 segundos
-Tiempo total del programa: 0.006344 segundos
+Tiempo de busqueda: 0.007399 segundos
+Tiempo total del programa: 0.009415 segundos
 ```
 
-La búsqueda tardó aproximadamente 0.0049 segundos y el programa completo tardó aproximadamente 0.0063 segundos. Se probaron 12,346 claves, contando desde cero hasta llegar a 12345. No fue necesario probar todas las claves del ejercicio porque el programa se detuvo al encontrar la correcta. Los tiempos pueden cambiar dependiendo de la computadora y de los otros programas que estén ejecutándose.
+La búsqueda tardó aproximadamente 0.0049 segundos y el programa completo tardó aproximadamente 0.0094 segundos. Se probaron 12,346 claves, contando desde cero hasta llegar a 12345. No fue necesario probar todas las claves del ejercicio porque el programa se detuvo al encontrar la correcta. Los tiempos pueden cambiar dependiendo de la computadora y de los otros programas que estén ejecutándose.
 
 ## 3. Problemas del programa secuencial
+
+![Ejercicio 3](/Capturas/ej3.png)
+
 
 ### a) Qué encontramos
 
@@ -173,6 +178,9 @@ La búsqueda tardó aproximadamente 0.0049 segundos y el programa completo tard�
 Conservamos los nombres que ya estaban indicados para las mejoras anteriores y asignamos una de las tres correcciones nuevas a cada integrante. El prefijo fijo se mantiene como parte del ejercicio, sin contarlo como mejora de seguridad. Tampoco se incluye un Makefile ni una comprobación de `malloc`, porque esos elementos no están en los archivos actuales.
 
 ## 4. Versión paralela con Open MPI
+
+![Ejercicio 4](/Capturas/ej4.png)
+
 
 ### a) Cómo repartimos el trabajo
 
@@ -289,3 +297,7 @@ Rescorla, E. (2018). *The Transport Layer Security (TLS) protocol version 1.3* (
 Viega, J., & McGrew, D. (2005). *The use of Galois/Counter Mode (GCM) in IPsec Encapsulating Security Payload (ESP)* (RFC 4106). Internet Engineering Task Force. https://doi.org/10.17487/RFC4106
 
 Whitestack. (2024, 9 de agosto). *¿Cómo funciona el cifrado AES? Funcionamiento y características*. https://whitestack.com/es/blog/cifrado-aes/
+
+## Anexos
+
+-git: https://github.com/SebastianUVG/Lab_3_Paralela
