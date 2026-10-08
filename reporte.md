@@ -177,64 +177,133 @@ La búsqueda tardó aproximadamente 0.0049 segundos y el programa completo tard�
 
 ### a) Qué encontramos
 
-**1. La clave siempre tiene ceros arriba (`make_key`)**
-El candidato de 64 bits solo se pone en los 8 bytes de abajo de la clave de 16 bytes. Los 8 bytes de arriba siempre son `0x00`, y además solo probamos 2²⁰ claves. Una clave real de AES-128 no se vería así, entonces el ataque es mucho más fácil de lo que sería en la vida real.
+**Construcción de la clave.** El programa original forma una clave de 16 bytes a partir de un número y deja los bytes restantes en cero. La clave tiene el tamaño correcto para AES-128, pero las candidatas son fáciles de generar y pertenecen a un rango pequeño. En la versión mejorada se agregó un prefijo fijo distinto de cero. Esto cambia las claves que se prueban, pero no aumenta su seguridad ni la cantidad de posibilidades. Por eso lo llamamos prefijo fijo y no lo consideramos una mejora de seguridad.
 
-**2. Modo ECB**
-Como solo ciframos un bloque de 16 bytes, ECB no causa problemas aquí. Pero ECB no es seguro cuando hay varios bloques, y el verdadero problema del programa es que el espacio de búsqueda es muy pequeño, no el modo de cifrado.
+**Modo ECB.** El mensaje ocupa un solo bloque de 16 bytes, así que ECB permite realizar esta demostración. Su limitación aparece al cifrar varios bloques: si dos bloques son iguales, producen el mismo resultado cifrado y pueden mostrar patrones. Además, este programa no comprueba si el mensaje fue modificado. Para una aplicación real propondríamos usar un modo como AES-GCM, que también permite verificar la integridad. En este laboratorio conservamos ECB para comparar las dos versiones con el mismo ejercicio.
 
-**3. Comparamos con el mensaje completo**
-El programa compara los 16 bytes del mensaje descifrado con el original. Eso quiere decir que el atacante ya sabe todo el texto, y eso casi nunca pasa. Normalmente solo se conoce una parte.
+**Verificación con el texto original.** El programa compara los 16 bytes descifrados con “Puedes lograrlo!”. Esto supone que se conoce todo el mensaje original. Es una prueba de búsqueda con texto conocido; si solo se conoce una parte del mensaje o no se conoce ninguna, la misma comparación no sirve. La clave secreta se usa para preparar el ejercicio, pero la búsqueda verifica cada candidata mediante el mensaje recuperado. Una coincidencia con un bloque tampoco garantiza matemáticamente que sea la única clave posible, aunque encontrar otra coincidencia en este rango sería muy poco probable.
 
-**4. Solo se prueba una parte mínima de las claves**
-AES-128 tiene 2¹²⁸ claves y el programa solo prueba 2²⁰ (1,048,576), o sea 2⁻¹⁰⁸ del total. Está bien para un laboratorio, pero el programa no lo dice, y podría parecer que AES-128 se rompe fácil.
+**Espacio de claves.** AES-128 tiene 2¹²⁸ claves posibles, pero por defecto el programa solo explora 2²⁰, es decir, 1,048,576 candidatas. Esto representa 2⁻¹⁰⁸ del espacio completo. Incluso al configurar 63 bits seguimos buscando dentro de una parte del espacio de AES-128. Por eso encontrar la clave en el laboratorio no significa que sea práctico romper AES-128 completo.
 
-**5. La clave secreta está muy al inicio (afecta las mediciones)**
-`SECRET_KEY = 12345` está casi al principio del rango (`0 .. 2²⁰-1`). En la versión paralela, el proceso 0 la encuentra casi de inmediato y el tiempo medido depende más de la comunicación que del trabajo repartido. Por eso el *speedup* sale mal.
+**Posición de la clave y tiempos.** La clave original, 12345, está cerca del inicio del rango. Eso hace que la búsqueda termine pronto y que la comunicación entre procesos pueda pesar mucho en el tiempo paralelo. Para comparar las versiones mejoradas usamos por defecto una clave cerca del final. Los tiempos siguen dependiendo de la posición de la clave, del equipo y de su carga.
 
 ### b) Mejoras que hicimos
 
-| # | Mejora | Por qué | Propuesta por |
-|---|--------|---------|---------------|
-| 1 | Los bytes de arriba de la clave ahora llevan una "sal" fija distinta de cero | Así la clave no tiene la mitad en ceros y se parece más a una real | Cisco |
-| 2 | `SECRET_KEY` se movió cerca del final del rango | Así se prueban casi todas las claves y el tiempo es más real | Ana Laura |
-| 3 | El programa imprime cuántas claves prueba y qué fracción es de 2¹²⁸ | Para que se vea que es una prueba chiquita y no el AES-128 completo | Sebastian |
-| 4 | Se hizo la función `keys_match()` para comparar el mensaje y se revisan los errores de `malloc` en la versión paralela | El código queda más ordenado y no se cae si falla la memoria | Ana Laura |
-| 5 | Se agregó un *Makefile* y el número de claves se puede pasar por argumento | Así probamos con otros tamaños sin recompilar | Cisco |
-| 6 | La versión paralela reparte las claves en bloques casi iguales y usa `MPI_Iprobe` para avisar cuando alguien la encuentra | Cuando uno la encuentra, los demás paran y no trabajan de más | Sebastian |
+| Mejora | Por qué | Propuesta por |
+| --- | --- | --- |
+| Colocar la clave de prueba por defecto cerca del final del rango | Permite medir una búsqueda que recorre casi todo el rango. Ambas versiones usan la misma clave. | Ana Laura |
+| Mostrar el tamaño del rango y su fracción frente a 2¹²⁸ | Aclara que solo se explora una parte pequeña de las claves de AES-128. | Sebastian |
+| Separar la comparación en `keys_match()` | Hace más fácil entender dónde se comprueba el mensaje conocido. No elimina la necesidad de conocerlo. | Ana Laura |
+| Configurar los bits de búsqueda desde la terminal | Permite cambiar el tamaño del ejercicio sin editar ni recompilar el código. | Cisco |
+| Repartir el rango entre los procesos | Cada proceso recibe una parte distinta para realizar la búsqueda en paralelo. | Sebastian |
+| Validar completamente los argumentos | Evita aceptar entradas como `4abc`, números fuera de rango o argumentos de más. La validación se comparte en `aes_busqueda_opciones.h`. | Ana Tschen |
+| Permitir una clave de prueba opcional | Sirve para comprobar claves al inicio, al final o fuera del rango de búsqueda. | Sebastian García |
+| Coordinar la finalización por tandas | Evita que un proceso espere un aviso que otro ya no va a recibir. Todos participan hasta encontrar la clave o agotar el rango. | Juan Francisco Martínez |
 
----
+Conservamos los nombres que ya estaban indicados para las mejoras anteriores y asignamos una de las tres correcciones nuevas a cada integrante. El prefijo fijo se mantiene como parte del ejercicio, sin contarlo como mejora de seguridad. Tampoco se incluye un Makefile ni una comprobación de `malloc`, porque esos elementos no están en los archivos actuales.
 
 ## 4. Versión paralela con Open MPI
 
 ### a) Cómo repartimos el trabajo
 
-- El proceso 0 cifra el mensaje con `SECRET_KEY` y lo manda a todos con `MPI_Bcast`.
-- El rango `[0, TOTAL_KEYS)` se divide en bloques seguidos. Cada proceso recibe `TOTAL_KEYS / n` claves, y los primeros `TOTAL_KEYS % n` reciben una más. Así todos tienen trabajo y no se repite ninguna clave.
-- Cada proceso prueba su bloque. Cada cierto número de claves (`CHECK_INTERVAL`) revisa con `MPI_Iprobe` si otro ya encontró la clave.
-- Quien la encuentra avisa a todos con `MPI_Isend` (tag `TAG_FOUND`).
-- Al final todos hacen un `MPI_Allreduce` con `MPI_MIN` para tener la misma respuesta.
-- El tiempo se mide con `MPI_Wtime()` desde después del `Bcast` hasta después del `Allreduce`. Se toma el máximo entre procesos con `MPI_Reduce` y lo imprime el proceso 0.
+El proceso 0 cifra el mensaje con la clave de prueba y lo comparte mediante `MPI_Bcast`. Después, el rango se divide en bloques consecutivos de tamaños casi iguales. Si el número de candidatas no se divide exactamente entre los procesos, los primeros reciben una candidata adicional. Así cada candidata pertenece a un solo proceso y no hay espacios sin asignar ni candidatas repetidas.
 
-### b) Cómo correrlo
+Por ejemplo, con 16 candidatas y 3 procesos, los rangos son:
+
+| Proceso | Candidatas asignadas |
+| --- | --- |
+| 0 | 0 a 5 |
+| 1 | 6 a 10 |
+| 2 | 11 a 15 |
+
+Cada proceso prueba hasta 2,048 claves por tanda. Al finalizar, todos usan `MPI_Allreduce` para compartir si encontraron una clave y si queda trabajo. Los procesos que ya agotaron su rango siguen participando en la comunicación, incluso si recibieron un rango vacío. Todos terminan cuando aparece una coincidencia o cuando se agotan las candidatas. Si se encuentra la clave antes, se deja de probar el resto del rango a propósito.
+
+La versión anterior enviaba avisos con `MPI_Isend` y los consultaba con `MPI_Iprobe`. Se cambió ese mecanismo porque un proceso que terminara su rango podía dejar de recibir avisos mientras otro esperaba completar el envío.
+
+### b) Compilación y ejecución
+
+En Fedora se necesitan Open MPI y sus archivos de desarrollo:
 
 ```bash
-mpicc -std=c11 -O2 -Wall -Wextra busqueda_clave_aes_paralelo.c -o busqueda_clave_aes_paralelo -lcrypto
-mpirun -np 2 ./busqueda_clave_aes_paralelo
-mpirun -np 3 ./busqueda_clave_aes_paralelo
-mpirun -np 4 ./busqueda_clave_aes_paralelo
+sudo dnf install openmpi openmpi-devel
 ```
 
-Resultados (falta llenar con nuestras mediciones):
+Desde la carpeta del proyecto, compilamos ambas versiones:
 
-| Procesos (n) | Tiempo (s) | Speedup (T₁ / Tₙ) |
-|---|---|---|
-| 1 (secuencial mejorado) | | 1.00 |
-| 2 | | |
-| 3 | | |
-| 4 | | |
+```bash
+cd Programas
+export PATH=/usr/lib64/openmpi/bin:$PATH
+gcc -std=c11 -O2 -Wall -Wextra busqueda_clave_aes_secuencial_mejorado.c -o busqueda_clave_aes_secuencial_mejorado -lcrypto
+/usr/lib64/openmpi/bin/mpicc -std=c11 -O2 -Wall -Wextra busqueda_clave_aes_paralelo.c -o busqueda_clave_aes_paralelo -lcrypto
+```
 
-`T₁` es el tiempo de la versión secuencial **mejorada**.
+En Fedora usamos la ruta de Open MPI. Si `mpicc` y `mpirun` ya están disponibles directamente en la terminal, se pueden usar sin esa ruta. El archivo `aes_busqueda_opciones.h` debe estar junto a los dos programas.
+
+Para comparar el mismo rango de 20 bits:
+
+```bash
+./busqueda_clave_aes_secuencial_mejorado 20
+/usr/lib64/openmpi/bin/mpirun -np 2 ./busqueda_clave_aes_paralelo 20
+/usr/lib64/openmpi/bin/mpirun -np 3 ./busqueda_clave_aes_paralelo 20
+/usr/lib64/openmpi/bin/mpirun -np 4 ./busqueda_clave_aes_paralelo 20
+```
+
+### c) Verificación de la clave y el mensaje
+
+Ambas versiones compilaron sin advertencias. La secuencial y la paralela con 2, 3 y 4 procesos recuperaron la misma clave y mensaje en las tres ejecuciones de cada configuración con 20 bits:
+
+```text
+Clave encontrada: 1048539
+Mensaje: Puedes lograrlo!
+```
+
+Las pruebas adicionales dieron estos resultados:
+
+| Bits de búsqueda | Clave de prueba | Resultado en ambas versiones |
+| --- | --- | --- |
+| 1 | 1, por defecto | Clave encontrada: 1 |
+| 4 | 0 | Clave encontrada: 0 |
+| 4 | 15 | Clave encontrada: 15 |
+| 4 | 16 | No se encontró la clave, porque queda fuera del rango |
+
+También se comprobó que se rechazan argumentos inválidos como `4abc`, `0`, `64`, una clave negativa, una clave demasiado grande y argumentos adicionales.
+
+Para repetir los casos en paralelo, incluyendo uno con más procesos que candidatas:
+
+```bash
+/usr/lib64/openmpi/bin/mpirun -np 4 ./busqueda_clave_aes_paralelo 1
+/usr/lib64/openmpi/bin/mpirun -np 3 ./busqueda_clave_aes_paralelo 4 0
+/usr/lib64/openmpi/bin/mpirun -np 3 ./busqueda_clave_aes_paralelo 4 15
+/usr/lib64/openmpi/bin/mpirun -np 3 ./busqueda_clave_aes_paralelo 4 16
+```
+
+Las cuatro pruebas de la tabla también pasaron en paralelo: el caso de 1 bit se ejecutó con 4 procesos y los casos de 4 bits con 3 procesos. Esto comprobó la finalización cuando hay rangos vacíos y cuando la clave está fuera del rango. La versión paralela también rechazó `4abc` como argumento.
+
+### d) Tiempos y speedup
+
+La versión paralela usa `MPI_Wtime()` después de sincronizar los procesos con una barrera. La medición incluye la búsqueda y su coordinación, y termina antes de imprimir los resultados. Se toma el mayor tiempo entre los procesos mediante `MPI_Reduce`. La versión secuencial usa un reloj monotónico para medir también la búsqueda, sin incluir la preparación del cifrado.
+
+Repetimos cada configuración tres veces con 20 bits en el mismo equipo. En todas las ejecuciones se encontró la clave 1048539 y el mensaje “Puedes lograrlo!”. Estos fueron los tiempos de búsqueda:
+
+| Configuración | Ejecución 1 (s) | Ejecución 2 (s) | Ejecución 3 (s) |
+| --- | --- | --- | --- |
+| Secuencial mejorada | 0.406803 | 0.238626 | 0.236327 |
+| 2 procesos | 0.320940 | 0.310253 | 0.316339 |
+| 3 procesos | 0.208827 | 0.204702 | 0.197882 |
+| 4 procesos | 0.152767 | 0.152104 | 0.153202 |
+
+El speedup se calcula como `T₁ / Tₙ`, donde `T₁` es el tiempo promedio de la versión secuencial mejorada y `Tₙ` el promedio con n procesos. No usamos el tiempo del ejercicio 2 porque allí se busca otra clave y se termina mucho antes.
+
+| Procesos (n) | Tiempo promedio (s) | Speedup (T₁ / Tₙ) |
+| --- | --- | --- |
+| 1, secuencial mejorada | 0.293919 | 1.000 |
+| 2 | 0.315844 | 0.931 |
+| 3 | 0.203804 | 1.442 |
+| 4 | 0.152691 | 1.925 |
+
+Con 2 procesos la versión paralela tardó más que la secuencial, por lo que su speedup fue menor que 1. Con 3 y 4 procesos sí hubo una reducción del tiempo. La comunicación al final de cada tanda y las esperas entre procesos agregan trabajo, por eso la mejora no crece exactamente con el número de procesos.
+
+También observamos variación en los tiempos secuenciales, especialmente en la primera ejecución. Estos resultados corresponden a tres pruebas por configuración en este equipo y pueden cambiar con su carga. Los tiempos medidos excluyen el arranque de MPI, la preparación del mensaje y la impresión del resultado.
 
 
 ## Referencias
