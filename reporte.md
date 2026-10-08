@@ -90,37 +90,7 @@ Sin la clave correcta no se generan las mismas claves de ronda y, por tanto, no 
 
 ## c) Diagrama de flujo de AES-128
 
-```mermaid
-flowchart TB
-    I([Inicio]) --> EN[Ingresar texto plano y clave secreta]
-    EN --> P[Texto plano: bloque de 128 bits]
-    EN --> K[Clave secreta de 128 bits]
-    K --> E[Expansión de clave]
-    E --> RK[Claves de ronda K0, K1, ..., K10]
-
-    subgraph C[Cifrado]
-        P --> C0[AddRoundKey con K0]
-        C0 --> C19["Rondas 1 a 9:<br/>SubBytes → ShiftRows → MixColumns → AddRoundKey con Ki"]
-        C19 --> C10["Ronda 10:<br/>SubBytes → ShiftRows → AddRoundKey con K10"]
-        C10 --> CT[Texto cifrado: bloque de 128 bits]
-    end
-
-    subgraph D[Descifrado]
-        CT --> D0[AddRoundKey con K10]
-        D0 --> D91["Rondas inversas 9 a 1:<br/>InvShiftRows → InvSubBytes → AddRoundKey con Ki → InvMixColumns"]
-        D91 --> D10["Ronda inversa final:<br/>InvShiftRows → InvSubBytes → AddRoundKey con K0"]
-        D10 --> DP[Texto plano recuperado: bloque de 128 bits]
-    end
-
-    DP --> F([Fin])
-
-    RK -. K0 .-> C0
-    RK -. K1 a K9 .-> C19
-    RK -. K10 .-> C10
-    RK -. K10 .-> D0
-    RK -. K9 a K1 .-> D91
-    RK -. K0 .-> D10
-```
+![Diagrama](/Capturas/diagrama.png)
 
 El diagrama muestra que ambos procesos parten de la **misma clave secreta**. La expansión produce las mismas once claves de ronda; el cifrado las consume en orden ascendente (`K0` a `K10`) y el descifrado en orden descendente (`K10` a `K0`).
 
